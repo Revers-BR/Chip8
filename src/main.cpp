@@ -36,22 +36,7 @@ Chip8 chip8;
 #define SCALE 3.5
 const uint16_t SCREEN_LENGTH = chip8.SCREEN_WIDTH * chip8.SCREEN_HEIGHT;
 
-#define OLED_RESET -1
 #define BEEPER 13
-
-#define ROWS 4
-#define COLS 4
-
-const char hexaKeys[ROWS][COLS] = {
-    {'C', 'D', 'E', 'F'},
-    {'3', '6', '9', 'B'},
-    {'2', '5', '8', '0'},
-    {'1', '4', '7', 'A'}};
-
-// R1, R2, R3, R4
-byte rowPins[ROWS] = {33, 32, 15, 4};
-// C1, C2, C3, C4
-byte colPins[COLS] = {25, 26, 27, 14};
 
 class Button
 {
@@ -371,32 +356,12 @@ byte get_key_code(String key)
     return 0X0;
 }
 
-// void keypadEvent(KeypadEvent key)
-// {
-//     KeyState key_state = keypad.getState();
-
-//     if (key)
-//     {
-//         byte key_code = get_key_code(key);
-
-//         if (key_state == PRESSED)
-//         {
-//             chip8.keypress(key_code, true);
-//         }
-//         else if (key_state == RELEASED)
-//         {
-//             chip8.keypress(key_code, false);
-//         }
-//     }
-// }
-
 void setup()
 {
     Serial.begin(115200);
     display.begin();
     pinMode(TFT_BL, OUTPUT);
     digitalWrite(TFT_BL, HIGH);
-    // keypad.addEventListener(keypadEvent);
 
     vspi.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
     ts.begin(vspi);
