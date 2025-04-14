@@ -12,10 +12,6 @@ Emulador com TouchScreen, onde você consegue selecionar a rom e jogar
 
 Para inserir mais roms coloque a rom no formato `.ch8` na pasta `data`
 
-___
-
 ### Baseado no projeto
 
 https://github.com/rafaeljacov/inochip8/tree/main
-
-___
