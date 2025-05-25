@@ -7,6 +7,7 @@
 #include <Wire.h>
 #include <SPIFFS.h>
 #include <Chip8.h>
+#include "KeyPad.h"
 
 #define TFT_BL 21
 #define TFT_CS 15
@@ -22,6 +23,10 @@
 #define XPT2046_CLK 25
 #define XPT2046_CS 33
 
+#define TICKS_PER_FRAME 30
+#define SCALE 3.5
+#define BEEPER 13
+
 // Note: the ESP32 has 2 SPI ports, to have ESP32-2432S028R work with the TFT and Touch on different SPI ports each needs to be defined and passed to the library
 SPIClass hspi = SPIClass(HSPI);
 SPIClass vspi = SPIClass(VSPI);
@@ -30,105 +35,9 @@ XPT2046_Touchscreen ts(XPT2046_CS, XPT2046_IRQ);
 
 Adafruit_ILI9341 display = Adafruit_ILI9341(&hspi, TFT_DC, TFT_CS, TFT_RST);
 
-#define TICKS_PER_FRAME 30
 Chip8 chip8;
 
-#define SCALE 3.5
 const uint16_t SCREEN_LENGTH = chip8.SCREEN_WIDTH * chip8.SCREEN_HEIGHT;
-
-#define BEEPER 13
-
-class Button
-{
-public:
-    int x1, y1, x2, y2;
-    String label;
-
-    Button(int x1, int x2, int y1, int y2, String label)
-    {
-        this->x1 = x1;
-        this->y1 = y1;
-        this->x2 = x2;
-        this->y2 = y2;
-        this->label = label;
-    }
-
-    // Verifica se o toque está dentro dos limites do botão
-    bool isPressed(int touchX, int touchY)
-    {
-        return (touchX >= x1 && touchX <= x2 && touchY >= y1 && touchY <= y2);
-    }
-
-    // Desenha o botão na tela
-    void draw()
-    {
-        display.drawRect(x1, y1, x2 - x1, y2 - y1, ILI9341_WHITE);
-        display.setTextSize(2);
-        display.setCursor(x2 - 35, y2 - 35);
-        display.print(label);
-    }
-};
-
-class KeyPad
-{
-private:
-    const int countCell = 4;
-    String listNameButton[4][4] = {
-        {"1", "2", "3", "C"},
-        {"4", "5", "6", "D"},
-        {"7", "8", "9", "E"},
-        {"A", "0", "B", "F"}};
-
-public:
-    Button *listButton[4][4];
-    KeyPad(int posX, int posY, int width, int height, float scale)
-    {
-        // Inicializa os botões
-        for (int y = 0; y < countCell; y++)
-        {
-            for (int x = 0; x < countCell; x++)
-            {
-                int x1 = posX + (x * width) * scale;
-                int x2 = posX + ((x * width) + width) * scale;
-                int y1 = posY + (y * height) * scale;
-                int y2 = posY + ((y * height) + height) * scale;
-
-                Button *button = new Button(x1, x2, y1, y2, listNameButton[y][x]);
-                listButton[y][x] = button;
-            }
-        }
-    }
-
-    void draw_buttons()
-    {
-        const int NUM_ROWS = 4; // Número de linhas
-        const int NUM_COLS = 4; // Número de colunas
-
-        for (int y = 0; y < NUM_ROWS; y++)
-        {
-            for (int x = 0; x < NUM_COLS; x++)
-            {
-                listButton[y][x]->draw();
-            }
-        }
-    }
-
-    // Verifica se algum botão foi pressionado
-    String checkPress(int touchX, int touchY)
-    {
-        for (int y = 0; y < countCell; y++)
-        {
-            for (int x = 0; x < countCell; x++)
-            {
-                if (listButton[y][x]->isPressed(touchX, touchY))
-                {
-                    return listButton[y][x]->label;
-                }
-            }
-        }
-        return "";
-    }
-};
 
 KeyPad *keypad = nullptr;
 
@@ -269,7 +178,7 @@ void game_select()
 
         show_text(0, 16, 1, game_name);
 
-        keypad->draw_buttons();
+        keypad->draw_buttons(display);
 
         while (true)
         {
@@ -377,15 +286,13 @@ void setup()
             ;
     }
 
-    keypad = new KeyPad(15, 115, 10, 10, 5); // Posicao (30,50), tamanho de 50x50, escala 1.5
+    keypad = new KeyPad(15, 115, 10, 10, 5);
 
     game_select();
 }
 
 void loop()
 {
-    // char key = keypad.getKey();
-
     String key = verificaBotaoPressionado();
 
     byte key_code = 0;
@@ -414,5 +321,5 @@ void loop()
     }
 
     draw_screen();
-    keypad->draw_buttons();
+    keypad->draw_buttons(display);
 }
