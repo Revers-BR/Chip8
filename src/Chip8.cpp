@@ -1,8 +1,5 @@
 #include "Chip8.h"
 #include "Arduino.h"
-// #include <cstddef>
-// #include <cstdio>
-// #include <cstdlib>
 
 typedef unsigned char byte;
 

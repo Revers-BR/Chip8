@@ -16,10 +16,17 @@ bool Button::isPressed(int touchX, int touchY)
     return (touchX >= this->x1 && touchX <= this->x2 && touchY >= this->y1 && touchY <= this->y2);
 }
 
-void Button::draw(Adafruit_ILI9341& display)
+void Button::draw(Adafruit_ILI9341 &display, bool clear)
 {
-    display.drawRect(x1, y1, x2 - x1, y2 - y1, ILI9341_WHITE);
-    display.setTextSize(2);
-    display.setCursor(x2 - 35, y2 - 35);
-    display.print(this->label);
+    if (clear)
+    {
+        display.fillRect(x1, y1, x2 - x1, y2 - y1, ILI9341_BLACK);
+    }
+    else
+    {
+        display.drawRect(x1, y1, x2 - x1, y2 - y1, ILI9341_WHITE);
+        display.setTextSize(2);
+        display.setCursor(x2 - 28, y2 - 32);
+        display.print(this->label);
+    }
 }

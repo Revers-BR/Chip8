@@ -5,7 +5,7 @@ KeyPad::KeyPad(int posX, int posY, int width, int height, float scale)
     // Inicializa os botões
     for (int y = 0; y < countCell; y++)
     {
-        for (int x = 0; x < countCell; x++)
+        for (int x = 0; x < countCell + 1; x++)
         {
             int x1 = posX + (x * width) * scale;
             int x2 = posX + ((x * width) + width) * scale;
@@ -18,14 +18,14 @@ KeyPad::KeyPad(int posX, int posY, int width, int height, float scale)
     }
 }
 
-void KeyPad::draw_buttons(Adafruit_ILI9341& display)
+void KeyPad::draw_buttons(Adafruit_ILI9341 &display)
 {
     const int NUM_ROWS = 4; // Número de linhas
     const int NUM_COLS = 4; // Número de colunas
 
     for (int y = 0; y < NUM_ROWS; y++)
     {
-        for (int x = 0; x < NUM_COLS; x++)
+        for (int x = 0; x < NUM_COLS + 1; x++)
         {
             listButton[y][x]->draw(display);
         }
@@ -37,7 +37,7 @@ String KeyPad::checkPress(int touchX, int touchY)
 {
     for (int y = 0; y < countCell; y++)
     {
-        for (int x = 0; x < countCell; x++)
+        for (int x = 0; x < countCell + 1; x++)
         {
             if (listButton[y][x]->isPressed(touchX, touchY))
             {

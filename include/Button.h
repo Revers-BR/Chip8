@@ -13,5 +13,5 @@ public:
     bool isPressed(int touchX, int touchY);
 
     // Desenha o botão na tela
-    void draw(Adafruit_ILI9341& display);
+    void draw(Adafruit_ILI9341& display, bool clear = false);
 };

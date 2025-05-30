@@ -1,0 +1,10 @@
+#ifndef CREDENTIALS_H
+#define CREDENTIALS_H
+
+#define DEFAULT_AP_SSID "ConfigESP32"
+#define DEFAULT_AP_PASSWORD "123456"
+
+#define WEB_USERNAME "admin"
+#define WEB_PASSWORD "123456"
+
+#endif

@@ -1,0 +1,2 @@
+void setupWeb();
+void loopWeb();

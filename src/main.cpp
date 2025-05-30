@@ -1,13 +1,17 @@
 // ROMs can be found at https://github.com/kripod/chip8-roms
-#include "Arduino.h"
+#include <SPI.h>
+#include <WiFi.h>
+#include <Wire.h>
+#include <SPIFFS.h>
+#include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
 #include <XPT2046_Touchscreen.h>
-#include <SPI.h>
-#include <Wire.h>
-#include <SPIFFS.h>
-#include <Chip8.h>
+
+#include "Web.h"
+#include "Chip8.h"
 #include "KeyPad.h"
+#include "credentials.h"
 
 #define TFT_BL 21
 #define TFT_CS 15
@@ -24,7 +28,7 @@
 #define XPT2046_CS 33
 
 #define TICKS_PER_FRAME 30
-#define SCALE 3.5
+#define SCALE 3.7
 #define BEEPER 13
 
 // Note: the ESP32 has 2 SPI ports, to have ESP32-2432S028R work with the TFT and Touch on different SPI ports each needs to be defined and passed to the library
@@ -41,6 +45,10 @@ const uint16_t SCREEN_LENGTH = chip8.SCREEN_WIDTH * chip8.SCREEN_HEIGHT;
 
 KeyPad *keypad = nullptr;
 
+bool modeManagerFile = false;
+bool isPaused = false;
+bool isStep = false;
+
 void load_file(File rom)
 {
     // load rom to chip8 memory
@@ -55,7 +63,7 @@ void load_file(File rom)
     if (bytes_read == 0)
     {
         Serial.println(F("ROM not loaded! Restart device manually."));
-        tone(BEEPER, 300);
+        // tone(BEEPER, 300);
         while (true)
             ;
     }
@@ -142,8 +150,6 @@ String verificaBotaoPressionado()
         if (pressed != "")
         {
             return pressed;
-
-            delay(100);
         }
     }
 
@@ -225,6 +231,71 @@ void game_select()
     }
 }
 
+void menu_select()
+{
+    byte select_index = 0;
+    String listOptions[2] = {
+        "(1) Manager Wi-fi",
+        "(2) Select Game"};
+
+    while (true)
+    {
+        select_index++;
+
+        display.fillScreen(ILI9341_BLACK);
+        show_text(0, 0, 1, "Select options:");
+        show_text(98, 0, 1, String(select_index) + "/2");
+        show_text(20, 48, 1, listOptions[0]);
+        show_text(22, 56, 1, listOptions[1]);
+
+        show_text(0, 16, 1, listOptions[select_index - 1]);
+
+        keypad->draw_buttons(display);
+
+        while (true)
+        {
+            String key = verificaBotaoPressionado();
+
+            if (key == "1")
+            {
+                modeManagerFile = true;
+                setupWeb();
+
+                display.fillScreen(ILI9341_BLACK);
+
+                display.setTextColor(ILI9341_WHITE);
+                display.setCursor(50, 75);
+                display.setTextSize(2);
+                display.println("CHIP8");
+                display.setTextSize(1);
+                display.setCursor(50, 95);
+                switch (WiFi.getMode())
+                {
+                case 1:
+                    display.println(WiFi.localIP());
+                    display.setCursor(50, 115);
+                    display.println(WiFi.SSID());
+                    break;
+                default:
+                    display.println(WiFi.softAPIP());
+                    display.setCursor(50, 115);
+                    display.println(DEFAULT_AP_SSID);
+                    break;
+                }
+                break;
+            }
+            else if (key == "2")
+            {
+                game_select();
+                modeManagerFile = false;
+
+                break;
+            }
+        }
+        break;
+    }
+}
+
 byte get_key_code(String key)
 {
     switch (key[0])
@@ -280,46 +351,70 @@ void setup()
 
     if (!SPIFFS.begin())
     {
-        show_text(10, 26, 1, "Erro ao montar SPIFFS");
-        tone(BEEPER, 300);
+        show_text(10, 26, 1, "Erro ao montar SPIFFS:");
+        show_text(10, 46, 1, "Faca upload dos assets que esta na pasta 'DATA'");
+        // tone(BEEPER, 300);
         while (true)
             ;
     }
 
-    keypad = new KeyPad(15, 115, 10, 10, 5);
+    keypad = new KeyPad(5, 135, 9, 9, 5);
 
-    game_select();
+    menu_select();
 }
 
 void loop()
 {
-    String key = verificaBotaoPressionado();
-
-    byte key_code = 0;
-
-    if (key != "")
+    if (modeManagerFile)
     {
-        key_code = get_key_code(key);
 
-        chip8.keypress(key_code, true);
+        loopWeb();
     }
     else
     {
-        chip8.keypressReset();
+        String key = verificaBotaoPressionado();
+
+        byte key_code = 0;
+
+        if (key != "")
+        {
+            if (key == "R")
+            {
+                display.fillScreen(ILI9341_BLACK);
+                show_text(chip8.SCREEN_WIDTH / 2, 0, 1, "Reiniciando em 2s");
+                delay(2000);
+                ESP.restart();
+            }
+            else if (key == "P")
+            {
+                isPaused = !isPaused;
+            }
+
+            key_code = get_key_code(key);
+
+            chip8.keypress(key_code, true);
+        }
+        else
+        {
+            chip8.keypressReset();
+        }
+
+        if (!isPaused)
+        {
+            for (int i = 0; i < TICKS_PER_FRAME; i++)
+            {
+                chip8.tick();
+            }
+        }
+
+        chip8.tick_timers();
+
+        // if (chip8.beeping)
+        // {
+        //     tone(BEEPER, 7000, 50);
+        // }
+
+        draw_screen();
+        keypad->draw_buttons(display);
     }
-
-    for (int i = 0; i < TICKS_PER_FRAME; i++)
-    {
-        chip8.tick();
-    }
-
-    chip8.tick_timers();
-
-    if (chip8.beeping)
-    {
-        tone(BEEPER, 7000, 50);
-    }
-
-    draw_screen();
-    keypad->draw_buttons(display);
 }
